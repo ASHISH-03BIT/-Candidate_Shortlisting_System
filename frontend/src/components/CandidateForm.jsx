@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api.js";
 
 const initialForm = { name: "", email: "", skills: "", experience: "", bio: "" };
 
@@ -18,7 +18,7 @@ function CandidateForm() {
     setStatus(null);
 
     try {
-      await axios.post("/api/candidates", {
+      await api.post("/api/candidates", {
         ...form,
         experience: Number(form.experience),
         skills: form.skills.split(",").map((skill) => skill.trim()).filter(Boolean)

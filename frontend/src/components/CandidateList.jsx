@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api.js";
 
 function CandidateList() {
   const [candidates, setCandidates] = useState([]);
@@ -9,7 +9,7 @@ function CandidateList() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const { data } = await axios.get("/api/candidates");
+        const { data } = await api.get("/api/candidates");
         setCandidates(data);
       } catch (requestError) {
         setError(requestError.response?.data?.message || "Unable to load candidates.");

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api.js";
 import ShortlistResults from "./ShortlistResults.jsx";
 import AIResults from "./AIResults.jsx";
 
@@ -24,7 +24,7 @@ function JobForm({ mode = "basic" }) {
     setLoading(true);
     setError("");
     try {
-      const { data } = await axios.post("/api/match", payload);
+      const { data } = await api.post("/api/match", payload);
       setBasicResults(data);
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Basic shortlist failed.");
@@ -37,8 +37,8 @@ function JobForm({ mode = "basic" }) {
     setLoading(true);
     setError("");
     try {
-      const candidatesResponse = await axios.get("/api/candidates");
-      const { data } = await axios.post("/api/ai/shortlist", {
+      const candidatesResponse = await api.get("/api/candidates");
+      const { data } = await api.post("/api/ai/shortlist", {
         requiredSkills: payload.requiredSkills,
         minExperience: payload.minExperience,
         candidates: candidatesResponse.data
