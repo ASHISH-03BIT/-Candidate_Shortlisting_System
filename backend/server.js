@@ -3,7 +3,6 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const mongoose = require("mongoose");
-const authRoutes = require("./routes/auth");
 const candidateRoutes = require("./routes/candidates");
 const employeeRoutes = require("./routes/employees");
 const matchRoutes = require("./routes/match");
@@ -33,7 +32,6 @@ app.use(
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
-app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/match", matchRoutes);
