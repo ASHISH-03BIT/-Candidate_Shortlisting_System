@@ -5,6 +5,7 @@ function AuthForm({ onAuth }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const updateField = (event) => {
@@ -15,16 +16,25 @@ function AuthForm({ onAuth }) {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
 
     try {
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
       const payload = mode === "signup" ? form : { email: form.email, password: form.password };
       const { data } = await api.post(endpoint, payload);
+      if (data.message) {
+        setMessage(data.message);
+      }
       localStorage.setItem("employeeAnalyticsToken", data.token);
       localStorage.setItem("employeeAnalyticsUser", JSON.stringify(data.user));
-      onAuth(data.user);
+
+      if (mode === "signup") {
+        window.setTimeout(() => onAuth(data.user), 800);
+      } else {
+        onAuth(data.user);
+      }
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "Authentication failed.");
+      setError(requestError.response?.data?.message || requestError.message);
     } finally {
       setLoading(false);
     }
@@ -54,8 +64,19 @@ function AuthForm({ onAuth }) {
             <input name="password" type="password" value={form.password} onChange={updateField} required placeholder="••••••••" />
           </label>
           <button className="primary-button" type="submit" disabled={loading}>{loading ? "Please wait..." : mode === "signup" ? "Sign Up" : "Login"}</button>
-          <button className="secondary-button" type="button" onClick={() => setMode(mode === "signup" ? "login" : "signup")}>Switch to {mode === "signup" ? "Login" : "Signup"}</button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => {
+              setMode(mode === "signup" ? "login" : "signup");
+              setError("");
+              setMessage("");
+            }}
+          >
+            Switch to {mode === "signup" ? "Login" : "Signup"}
+          </button>
         </form>
+        {message && <div className="toast success">{message}</div>}
         {error && <div className="toast error">{error}</div>}
       </section>
     </main>
