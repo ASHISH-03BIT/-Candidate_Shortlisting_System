@@ -22,16 +22,18 @@ function AuthForm({ onAuth }) {
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
       const payload = mode === "signup" ? form : { email: form.email, password: form.password };
       const { data, status } = await api.post(endpoint, payload);
-      if (data.message) {
-        setMessage(data.message);
-      }
 
       if (mode === "signup") {
-        if (status === 201) {
+        if (status === 201 && data.message) {
+          setMessage(data.message);
           setMode("login");
           setForm((current) => ({ ...current, password: "" }));
         }
         return;
+      }
+
+      if (data.message) {
+        setMessage(data.message);
       }
 
       if (data.token && data.user) {
