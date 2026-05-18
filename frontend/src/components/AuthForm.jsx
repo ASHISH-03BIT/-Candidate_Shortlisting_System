@@ -21,16 +21,22 @@ function AuthForm({ onAuth }) {
     try {
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
       const payload = mode === "signup" ? form : { email: form.email, password: form.password };
-      const { data } = await api.post(endpoint, payload);
+      const { data, status } = await api.post(endpoint, payload);
       if (data.message) {
         setMessage(data.message);
       }
-      localStorage.setItem("employeeAnalyticsToken", data.token);
-      localStorage.setItem("employeeAnalyticsUser", JSON.stringify(data.user));
 
       if (mode === "signup") {
-        window.setTimeout(() => onAuth(data.user), 800);
-      } else {
+        if (status === 201) {
+          setMode("login");
+          setForm((current) => ({ ...current, password: "" }));
+        }
+        return;
+      }
+
+      if (data.token && data.user) {
+        localStorage.setItem("employeeAnalyticsToken", data.token);
+        localStorage.setItem("employeeAnalyticsUser", JSON.stringify(data.user));
         onAuth(data.user);
       }
     } catch (requestError) {

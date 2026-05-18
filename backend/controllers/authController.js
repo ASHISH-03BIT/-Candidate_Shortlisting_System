@@ -7,27 +7,30 @@ const userResponse = (user) => ({ id: user._id, name: user.name, email: user.ema
 
 exports.signup = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
+    if (!req.body.name || !req.body.email || !req.body.password) {
       return res.status(422).json({ message: "Name, email, and password are required." });
     }
 
     const existingUser = await User.findOne({ email: req.body.email });
+    console.log(req.body.email);
+    console.log(existingUser);
+
     if (existingUser) {
-      return res.status(400).json({ message: "A record with this email already exists." });
+      return res.status(400).json({ message: "A record with this email already exists" });
     }
 
-    const user = await User.create({ name, email, password: await bcrypt.hash(password) });
-
-    return res.status(201).json({
-      message: "User created successfully",
-      token: createToken(user),
-      user: userResponse(user)
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const newUser = new User({
+      name: req.body.name,
+      email: req.body.email,
+      password: hashedPassword
     });
+
+    await newUser.save();
+    return res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ message: "A record with this email already exists." });
+      return res.status(400).json({ message: "A record with this email already exists" });
     }
 
     return next(error);
