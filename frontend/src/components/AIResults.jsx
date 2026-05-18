@@ -1,20 +1,21 @@
 function AIResults({ results }) {
-  if (!results?.length) return <p className="muted">Run an AI shortlist to see recruiter AI recommendations.</p>;
+  if (!results?.length) return <p className="muted">Run AI recommendations to see promotion guidance, ranking, training suggestions, and feedback.</p>;
 
   return (
     <div className="results-list">
-      {results.map((candidate) => (
-        <article className="result-card ai-card" key={`${candidate.name}-${candidate.rank}`}>
+      {results.map((employee) => (
+        <article className="result-card ai-card" key={`${employee.employeeName}-${employee.rank}`}>
           <div className="card-header">
             <div>
-              <span className="rank-badge">#{candidate.rank}</span>
-              <h3>{candidate.name}</h3>
+              <span className="rank-badge">#{employee.rank}</span>
+              <h3>{employee.employeeName}</h3>
             </div>
-            <span className="badge high">{candidate.aiScore}% AI Score</span>
+            <span className="badge high">{employee.aiScore}% AI Score</span>
           </div>
-          <p className="ai-reason">“{candidate.reason}”</p>
+          <p><strong>Promotion:</strong> {employee.promotionRecommendation}</p>
+          <p className="ai-reason">“{employee.feedback}”</p>
           <div className="tag-row">
-            {(candidate.skills || []).map((skill) => <span className="skill-tag" key={skill}>{skill}</span>)}
+            {(employee.trainingSuggestions || []).map((item) => <span className="skill-tag" key={item}>{item}</span>)}
           </div>
         </article>
       ))}

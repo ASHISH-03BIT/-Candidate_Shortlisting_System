@@ -5,25 +5,28 @@ const tierClass = (tier) => {
 };
 
 function ShortlistResults({ results }) {
-  if (!results?.length) return <p className="muted">Run a basic shortlist to see ranked candidates.</p>;
+  if (!results?.length) return <p className="muted">Run a performance ranking to see ranked employees.</p>;
 
   return (
     <div className="results-list">
-      {results.map((candidate) => (
-        <article className="result-card" key={candidate._id || candidate.email}>
+      {results.map((employee) => (
+        <article className="result-card" key={employee._id || employee.email}>
           <div className="card-header">
             <div>
-              <h3>{candidate.name}</h3>
-              <p>{candidate.email}</p>
+              <h3>{employee.employeeName || employee.name}</h3>
+              <p>{employee.department}</p>
             </div>
-            <span className={`badge ${tierClass(candidate.tier)}`}>{candidate.tier}</span>
+            <span className={`badge ${tierClass(employee.tier)}`}>{employee.tier}</span>
           </div>
           <div className="score-row">
-            <strong>{candidate.matchScore}%</strong>
-            <span>Match Score</span>
+            <strong>{employee.matchScore}%</strong>
+            <span>combined skill and performance score</span>
           </div>
+          <p className="bio">Performance: {employee.performanceScore}% • Experience: {employee.yearsOfExperience || employee.experience} years</p>
           <div className="tag-row">
-            {(candidate.matchedSkills || []).map((skill) => <span className="skill-tag matched" key={skill}>{skill}</span>)}
+            {(employee.skills || []).map((skill) => (
+              <span className={(employee.matchedSkills || []).includes(skill) ? "skill-tag matched" : "skill-tag"} key={skill}>{skill}</span>
+            ))}
           </div>
         </article>
       ))}

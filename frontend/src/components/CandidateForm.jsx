@@ -1,7 +1,14 @@
 import { useState } from "react";
 import api from "../api.js";
 
-const initialForm = { name: "", email: "", skills: "", experience: "", bio: "" };
+const initialForm = {
+  employeeName: "",
+  email: "",
+  department: "",
+  skills: "",
+  performanceScore: "",
+  yearsOfExperience: ""
+};
 
 function CandidateForm() {
   const [form, setForm] = useState(initialForm);
@@ -18,17 +25,18 @@ function CandidateForm() {
     setStatus(null);
 
     try {
-      await api.post("/api/candidates", {
+      await api.post("/api/employees", {
         ...form,
-        experience: Number(form.experience),
+        performanceScore: Number(form.performanceScore),
+        yearsOfExperience: Number(form.yearsOfExperience),
         skills: form.skills.split(",").map((skill) => skill.trim()).filter(Boolean)
       });
       setForm(initialForm);
-      setStatus({ type: "success", message: "Candidate saved successfully." });
+      setStatus({ type: "success", message: "Employee saved successfully." });
     } catch (error) {
       setStatus({
         type: "error",
-        message: error.response?.data?.message || "Could not save candidate."
+        message: error.response?.data?.message || "Could not save employee."
       });
     } finally {
       setSaving(false);
@@ -38,31 +46,35 @@ function CandidateForm() {
   return (
     <section className="panel">
       <div className="section-heading">
-        <p className="eyebrow">Profile intake</p>
-        <h2>Add Candidate</h2>
+        <p className="eyebrow">Employee intake</p>
+        <h2>Employee Registration</h2>
       </div>
       <form className="form-grid" onSubmit={handleSubmit}>
         <label>
-          Name
-          <input name="name" value={form.name} onChange={updateField} required placeholder="Ada Lovelace" />
+          Employee Name
+          <input name="employeeName" value={form.employeeName} onChange={updateField} required placeholder="Ada Lovelace" />
         </label>
         <label>
           Email
           <input name="email" type="email" value={form.email} onChange={updateField} required placeholder="ada@example.com" />
         </label>
         <label>
-          Skills
-          <input name="skills" value={form.skills} onChange={updateField} required placeholder="React, Node.js, MongoDB" />
+          Department
+          <input name="department" value={form.department} onChange={updateField} required placeholder="Engineering" />
         </label>
         <label>
-          Experience (years)
-          <input name="experience" type="number" min="0" step="0.5" value={form.experience} onChange={updateField} required />
+          Skills
+          <input name="skills" value={form.skills} onChange={updateField} required placeholder="React, Node.js, Analytics" />
         </label>
-        <label className="full-width">
-          Bio
-          <textarea name="bio" value={form.bio} onChange={updateField} rows="5" placeholder="Brief candidate summary" />
+        <label>
+          Performance Score
+          <input name="performanceScore" type="number" min="0" max="100" value={form.performanceScore} onChange={updateField} required placeholder="0 - 100" />
         </label>
-        <button className="primary-button" type="submit" disabled={saving}>{saving ? "Saving..." : "Save Candidate"}</button>
+        <label>
+          Years of Experience
+          <input name="yearsOfExperience" type="number" min="0" step="0.5" value={form.yearsOfExperience} onChange={updateField} required />
+        </label>
+        <button className="primary-button" type="submit" disabled={saving}>{saving ? "Saving..." : "Save Employee"}</button>
       </form>
       {status && <div className={`toast ${status.type}`}>{status.message}</div>}
     </section>

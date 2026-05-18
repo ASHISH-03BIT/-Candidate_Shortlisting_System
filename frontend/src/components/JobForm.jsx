@@ -20,32 +20,28 @@ function JobForm({ mode = "basic" }) {
     minExperience: Number(minExperience || 0)
   };
 
-  const runBasicShortlist = async () => {
+  const runBasicRanking = async () => {
     setLoading(true);
     setError("");
     try {
       const { data } = await api.post("/api/match", payload);
       setBasicResults(data);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "Basic shortlist failed.");
+      setError(requestError.response?.data?.message || "Performance ranking failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const runAIShortlist = async () => {
+  const runAIRecommendations = async () => {
     setLoading(true);
     setError("");
     try {
-      const candidatesResponse = await api.get("/api/candidates");
-      const { data } = await api.post("/api/ai/shortlist", {
-        requiredSkills: payload.requiredSkills,
-        minExperience: payload.minExperience,
-        candidates: candidatesResponse.data
-      });
+      const employeesResponse = await api.get("/api/employees");
+      const { data } = await api.post("/api/ai/recommend", { employees: employeesResponse.data });
       setAiResults(data);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || requestError.response?.data?.error || "AI shortlist failed.");
+      setError(requestError.response?.data?.message || requestError.response?.data?.error || "AI recommendation failed.");
     } finally {
       setLoading(false);
     }
@@ -53,35 +49,39 @@ function JobForm({ mode = "basic" }) {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (mode === "ai") runAIShortlist();
-    else runBasicShortlist();
+    if (mode === "ai") runAIRecommendations();
+    else runBasicRanking();
   };
 
   return (
     <section className="panel">
       <div className="section-heading">
-        <p className="eyebrow">Role requirements</p>
-        <h2>{mode === "ai" ? "AI Match" : "Shortlist"}</h2>
+        <p className="eyebrow">Performance analytics</p>
+        <h2>{mode === "ai" ? "AI Recommendation Display" : "Employee Performance Ranking"}</h2>
       </div>
       <form className="form-grid" onSubmit={handleSubmit}>
-        <label>
-          Required Skills
-          <input value={requiredSkills} onChange={(event) => setRequiredSkills(event.target.value)} required placeholder="React, Node.js" />
-        </label>
-        <label>
-          Min Experience
-          <input type="number" min="0" step="0.5" value={minExperience} onChange={(event) => setMinExperience(event.target.value)} required />
-        </label>
-        <label className="full-width">
-          Preferred Skills
-          <input value={preferredSkills} onChange={(event) => setPreferredSkills(event.target.value)} placeholder="AWS, TypeScript (optional)" />
-        </label>
+        {mode === "basic" && (
+          <>
+            <label>
+              Required Skills
+              <input value={requiredSkills} onChange={(event) => setRequiredSkills(event.target.value)} required placeholder="Leadership, React" />
+            </label>
+            <label>
+              Min Experience
+              <input type="number" min="0" step="0.5" value={minExperience} onChange={(event) => setMinExperience(event.target.value)} required />
+            </label>
+            <label className="full-width">
+              Preferred Skills
+              <input value={preferredSkills} onChange={(event) => setPreferredSkills(event.target.value)} placeholder="Mentoring, Analytics (optional)" />
+            </label>
+          </>
+        )}
         <div className="button-row full-width">
-          <button className="primary-button" type="button" disabled={loading} onClick={runBasicShortlist}>Basic Shortlist</button>
-          <button className="secondary-button" type="button" disabled={loading} onClick={runAIShortlist}>AI Shortlist</button>
+          {mode === "basic" && <button className="primary-button" type="button" disabled={loading} onClick={runBasicRanking}>Run Ranking</button>}
+          <button className="secondary-button" type="button" disabled={loading} onClick={runAIRecommendations}>AI Recommendations</button>
         </div>
       </form>
-      {loading && <div className="spinner-wrap"><span className="spinner" /> <span>{mode === "ai" ? "AI is ranking candidates..." : "Matching candidates..."}</span></div>}
+      {loading && <div className="spinner-wrap"><span className="spinner" /> <span>{mode === "ai" ? "AI is preparing employee recommendations..." : "Ranking employees..."}</span></div>}
       {error && <div className="toast error">{error}</div>}
       <div className="split-results">
         {(mode === "basic" || basicResults.length > 0) && <ShortlistResults results={basicResults} />}

@@ -1,14 +1,14 @@
-const Candidate = require("../models/Candidate");
+const Employee = require("../models/Employee");
 
 const normalize = (items = []) => items.map((item) => String(item).trim()).filter(Boolean);
 const normalizeLower = (items = []) => normalize(items).map((item) => item.toLowerCase());
 
-const getOriginalMatchedSkills = (candidateSkills, targetSkillsLower) => {
+const getOriginalMatchedSkills = (employeeSkills, targetSkillsLower) => {
   const targets = new Set(targetSkillsLower);
-  return normalize(candidateSkills).filter((skill) => targets.has(skill.toLowerCase()));
+  return normalize(employeeSkills).filter((skill) => targets.has(skill.toLowerCase()));
 };
 
-exports.matchCandidates = async (req, res) => {
+exports.matchCandidates = async (req, res, next) => {
   try {
     const requiredSkills = normalize(req.body.requiredSkills);
     const preferredSkills = normalize(req.body.preferredSkills || []);
@@ -21,18 +21,21 @@ exports.matchCandidates = async (req, res) => {
     const requiredLower = normalizeLower(requiredSkills);
     const preferredLower = normalizeLower(preferredSkills);
 
-    const candidates = await Candidate.find({ experience: { $gte: minExperience } }).lean();
+    const employees = await Employee.find({ yearsOfExperience: { $gte: minExperience } }).lean();
 
-    const results = candidates
-      .map((candidate) => {
-        const matchedRequired = getOriginalMatchedSkills(candidate.skills, requiredLower);
-        const matchedPreferred = getOriginalMatchedSkills(candidate.skills, preferredLower);
-        const baseScore = (matchedRequired.length / requiredSkills.length) * 100;
-        const score = Math.min(100, Math.round(baseScore + matchedPreferred.length * 5));
-        const tier = score >= 70 ? "High" : score >= 40 ? "Medium" : "Low";
+    const results = employees
+      .map((employee) => {
+        const matchedRequired = getOriginalMatchedSkills(employee.skills, requiredLower);
+        const matchedPreferred = getOriginalMatchedSkills(employee.skills, preferredLower);
+        const skillScore = (matchedRequired.length / requiredSkills.length) * 60;
+        const performanceScore = Number(employee.performanceScore || 0) * 0.4;
+        const score = Math.min(100, Math.round(skillScore + performanceScore + matchedPreferred.length * 3));
+        const tier = score >= 75 ? "High" : score >= 50 ? "Medium" : "Low";
 
         return {
-          ...candidate,
+          ...employee,
+          name: employee.employeeName,
+          experience: employee.yearsOfExperience,
           matchScore: score,
           matchedSkills: [...new Set([...matchedRequired, ...matchedPreferred])],
           matchedRequired,
@@ -44,6 +47,6 @@ exports.matchCandidates = async (req, res) => {
 
     return res.json(results);
   } catch (error) {
-    return res.status(500).json({ message: "Failed to match candidates.", error: error.message });
+    return next(error);
   }
 };
