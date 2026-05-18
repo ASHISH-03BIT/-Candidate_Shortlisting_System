@@ -9,7 +9,8 @@ A MERN-style application for registering employees, tracking performance data, f
 - **Frontend:** React.js + Vite
 - **HTTP Client:** Axios
 - **AI API:** OpenRouter/OpenAI-compatible Chat Completions API
-- **Default AI Model:** `openai/gpt-4o`
+- **Authentication:** JWT-style bearer tokens with Node.js crypto password hashing
+- **Default AI Model:** `openai/gpt-4o-mini`
 - **Deployment Target:** Render web service + Render static site + MongoDB Atlas
 
 ## Project Structure
@@ -21,8 +22,9 @@ A MERN-style application for registering employees, tracking performance data, f
   /models
     Employee.js
     Candidate.js       # compatibility alias for the existing structure
-    User.js           # retained for compatibility if existing data references it
+    User.js           # HR/Admin login users with hashed passwords
   /routes
+    auth.js
     employees.js
     candidates.js      # compatibility alias for the existing structure
     match.js
@@ -32,12 +34,16 @@ A MERN-style application for registering employees, tracking performance data, f
     matchController.js
     aiController.js
   /middleware
+    authMiddleware.js
     errorHandler.js
+  /utils
+    auth.js
 /frontend
   vite.config.js
   .env.example
   /src
     /components
+      AuthPage.jsx            # login/signup screen
       CandidateForm.jsx       # now Employee Registration Form
       CandidateList.jsx       # now Employee List + department search
       JobForm.jsx             # performance ranking + AI recommendation view
@@ -77,8 +83,11 @@ Edit `backend/.env`:
 ```env
 MONGO_URI=mongodb://localhost:27017/employee_analytics_db
 PORT=5000
+JWT_SECRET=replace_with_a_long_random_secret
+AI_PROVIDER=openrouter
 OPENROUTER_API_KEY=your_openrouter_key_here
-AI_MODEL=openai/gpt-4o
+AI_BASE_URL=https://openrouter.ai/api/v1
+AI_MODEL=openai/gpt-4o-mini
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -104,7 +113,43 @@ http://localhost:5173
 
 ## API Endpoints
 
-All CRUD and recommendation endpoints are accessible directly; no bearer token or authentication header is required.
+Signup and login are public. Employee, ranking, and AI endpoints are protected and require an `Authorization: Bearer <token>` header.
+
+
+### Signup
+
+```http
+POST /api/auth/signup
+```
+
+```json
+{
+  "name": "HR Admin",
+  "email": "admin@example.com",
+  "password": "secret123"
+}
+```
+
+Returns a bearer token and user profile. Passwords are stored as salted hashes, not plain text.
+
+### Login
+
+```http
+POST /api/auth/login
+```
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "secret123"
+}
+```
+
+Use the returned token for protected APIs:
+
+```http
+Authorization: Bearer <token>
+```
 
 ### Add Employee
 
@@ -132,6 +177,24 @@ GET /api/employees
 ```
 
 Returns employees sorted by newest first.
+
+### Update Employee
+
+```http
+PUT /api/employees/:id
+```
+
+```json
+{ "performanceScore": 91 }
+```
+
+### Delete Employee
+
+```http
+DELETE /api/employees/:id
+```
+
+Returns `{ "message": "Employee removed successfully." }`.
 
 ### Search Employees by Department
 
@@ -172,8 +235,9 @@ It returns promotion recommendation, employee ranking, training suggestions, AI 
 
 ## Frontend Usage
 
+- **Login/Signup:** HR/Admin users authenticate before accessing protected employee and AI routes.
 - **Add Employee:** Register employee name, email, department, skills, performance score, and years of experience.
-- **Employee List:** View all employees and filter by department.
+- **Employee List:** View all employees, filter by department, update performance scores, and delete employee records.
 - **Performance Ranking:** Rank employees using skill matches, experience, and performance score.
 - **AI Recommendations:** Call `/api/ai/recommend` for promotion readiness, training guidance, ranking, and feedback.
 
@@ -194,8 +258,11 @@ Environment variables:
 | --- | --- |
 | `MONGO_URI` | MongoDB Atlas connection string |
 | `PORT` | `5000` |
-| `OPENROUTER_API_KEY` | OpenRouter API key |
-| `AI_MODEL` | `openai/gpt-4o` |
+| `JWT_SECRET` | Long random signing secret |
+| `AI_PROVIDER` | `openrouter` or `openai` |
+| `OPENROUTER_API_KEY` | OpenRouter API key from `https://openrouter.ai/keys` |
+| `AI_BASE_URL` | `https://openrouter.ai/api/v1` for OpenRouter |
+| `AI_MODEL` | `openai/gpt-4o-mini` |
 | `FRONTEND_URL` | Render frontend origin |
 | `NODE_VERSION` | `20` |
 
@@ -239,15 +306,18 @@ Add screenshots under a `docs/screenshots/` folder after running locally or depl
 
 1. Postman add employee request.
 2. Postman get/search employees request without an Authorization header.
-3. Postman AI recommendation request without an Authorization header.
-4. MongoDB employees collection data.
-5. Frontend employee registration screen.
-6. Frontend employee list and department filter.
-7. Frontend AI recommendation output.
-8. Render backend and frontend deployment dashboards.
+3. Postman protected route without an Authorization header showing access denied.
+4. Postman AI recommendation request with an Authorization header.
+5. MongoDB employees collection data.
+6. Frontend login/signup screen.
+7. Frontend employee registration screen.
+8. Frontend employee list, department filter, update, and delete controls.
+9. Frontend AI recommendation output.
+10. Render backend and frontend deployment dashboards.
 
 ## Notes
 
 - Existing candidate-oriented file names are retained where needed to preserve the original project structure and compatibility.
 - `/api/candidates` and `/api/ai/shortlist` are kept as backward-compatible aliases, but the employee-focused endpoints are `/api/employees` and `/api/ai/recommend`.
+- If the AI endpoint returns `OpenRouter returned 401` or `User not found`, the configured key is invalid for OpenRouter. Create/copy a fresh key from OpenRouter, set `OPENROUTER_API_KEY` in `backend/.env` or Render, keep `AI_BASE_URL=https://openrouter.ai/api/v1`, and restart/redeploy the backend.
 - No API keys or production secrets are committed.

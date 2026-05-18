@@ -7,6 +7,8 @@ const candidateRoutes = require("./routes/candidates");
 const employeeRoutes = require("./routes/employees");
 const matchRoutes = require("./routes/match");
 const aiRoutes = require("./routes/ai");
+const authRoutes = require("./routes/auth");
+const requireAuth = require("./middleware/authMiddleware");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -32,10 +34,11 @@ app.use(
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
-app.use("/api/employees", employeeRoutes);
-app.use("/api/candidates", candidateRoutes);
-app.use("/api/match", matchRoutes);
-app.use("/api/ai", aiRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/employees", requireAuth, employeeRoutes);
+app.use("/api/candidates", requireAuth, candidateRoutes);
+app.use("/api/match", requireAuth, matchRoutes);
+app.use("/api/ai", requireAuth, aiRoutes);
 app.use(errorHandler);
 
 mongoose

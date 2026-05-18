@@ -138,3 +138,23 @@ button:disabled { cursor: wait; opacity: 0.65; }
   .content { padding: 18px; }
   .form-grid { grid-template-columns: 1fr; }
 }
+
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+  place-items: center;
+}
+.auth-panel { max-width: 560px; width: min(100%, 560px); }
+.inline-edit { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.inline-edit input { max-width: 140px; }
+.card-actions { margin-top: 14px; }
+.danger-button {
+  background: #dc2626;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 13px 22px;
+}

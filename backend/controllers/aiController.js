@@ -11,7 +11,7 @@ const buildPrompt = ({ employees }) => {
   const employeeLines = employees
     .map(
       (employee, index) =>
-        `${index + 1}. ${employee.employeeName || employee.name} | Department: ${employee.department} | Skills: ${(employee.skills || []).join(", ")} | Performance Score: ${employee.performanceScore} | Experience: ${employee.yearsOfExperience} years`
+        `${index + 1}. ${employee.employeeName || employee.name} | Department: ${employee.department} | Skills: ${(employee.skills || []).join(", ")} | Performance Score: ${employee.performanceScore} | Experience: ${employee.yearsOfExperience ?? employee.experience} years`
     )
     .join("\n");
 
@@ -35,10 +35,57 @@ Return ONLY valid JSON in this exact format:
 }`;
 };
 
+const getAiConfig = () => {
+  const provider = (process.env.AI_PROVIDER || "openrouter").toLowerCase();
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+  const baseUrl = (process.env.AI_BASE_URL || (provider === "openai" ? "https://api.openai.com/v1" : "https://openrouter.ai/api/v1")).replace(/\/$/, "");
+  const model = process.env.AI_MODEL || (provider === "openai" ? "gpt-4o-mini" : "openai/gpt-4o-mini");
+
+  return { apiKey, baseUrl, model, provider };
+};
+
+const buildAiHeaders = ({ apiKey, provider }) => ({
+  Authorization: `Bearer ${apiKey}`,
+  "Content-Type": "application/json",
+  ...(provider === "openrouter"
+    ? {
+        "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:5173",
+        "X-Title": "Employee Performance Analytics System"
+      }
+    : {})
+});
+
+const parseProviderError = async (response, provider) => {
+  const errorText = await response.text();
+  let providerMessage = errorText;
+  try {
+    const parsed = JSON.parse(errorText);
+    providerMessage = parsed?.error?.message || parsed?.message || errorText;
+  } catch (_error) {
+    providerMessage = errorText;
+  }
+
+  if (response.status === 401) {
+    const authHelp = provider === "openrouter"
+      ? "OpenRouter returned 401. Set a valid OPENROUTER_API_KEY from https://openrouter.ai/keys in backend/.env or your Render environment, then restart/redeploy the backend. Do not use an OpenAI key with the OpenRouter endpoint."
+      : "The OpenAI-compatible provider returned 401. Check that the API key belongs to the configured AI_BASE_URL provider.";
+    const error = new Error(`${authHelp} Provider message: ${providerMessage}`);
+    error.statusCode = 401;
+    return error;
+  }
+
+  const error = new Error(`${provider} request failed (${response.status}): ${providerMessage}`);
+  error.statusCode = response.status >= 400 && response.status < 500 ? response.status : 502;
+  return error;
+};
+
 exports.recommendEmployees = async (req, res, next) => {
   try {
-    if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === "your_openrouter_key_here") {
-      return res.status(500).json({ message: "OPENROUTER_API_KEY is not configured." });
+    const { apiKey, baseUrl, model, provider } = getAiConfig();
+    if (!apiKey || ["your_openrouter_key_here", "your_openai_key_here"].includes(apiKey)) {
+      return res.status(500).json({
+        message: "AI API key is not configured. Add OPENROUTER_API_KEY (or OPENAI_API_KEY with AI_PROVIDER=openai) to backend/.env or Render environment variables."
+      });
     }
 
     const employees = Array.isArray(req.body.employees) && req.body.employees.length
@@ -49,25 +96,18 @@ exports.recommendEmployees = async (req, res, next) => {
       return res.status(400).json({ message: "At least one employee is required for AI recommendations." });
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:5173",
-        "X-Title": "Employee Performance Analytics System"
-      },
+      headers: buildAiHeaders({ apiKey, provider }),
       body: JSON.stringify({
-        model: process.env.AI_MODEL || "openai/gpt-4o",
+        model,
         max_tokens: 1200,
+        response_format: { type: "json_object" },
         messages: [{ role: "user", content: buildPrompt({ employees }) }]
       })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenRouter request failed (${response.status}): ${errorText}`);
-    }
+    if (!response.ok) throw await parseProviderError(response, provider);
 
     const data = await response.json();
     const rawContent = data?.choices?.[0]?.message?.content;
@@ -84,3 +124,4 @@ exports.recommendEmployees = async (req, res, next) => {
 exports.shortlistWithAI = exports.recommendEmployees;
 exports.stripMarkdownFences = stripMarkdownFences;
 exports.buildPrompt = buildPrompt;
+exports.getAiConfig = getAiConfig;
