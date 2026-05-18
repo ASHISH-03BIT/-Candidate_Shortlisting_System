@@ -63,3 +63,36 @@ exports.searchEmployees = async (req, res, next) => {
 
 exports.createCandidate = exports.createEmployee;
 exports.getCandidates = exports.getEmployees;
+
+
+exports.updateEmployee = async (req, res, next) => {
+  try {
+    const payload = employeePayload(req.body);
+    const update = {};
+
+    if (payload.employeeName !== undefined) update.employeeName = payload.employeeName;
+    if (payload.email !== undefined) update.email = payload.email;
+    if (payload.department !== undefined) update.department = payload.department;
+    if (req.body.skills !== undefined) update.skills = payload.skills;
+    if (payload.performanceScore !== undefined && payload.performanceScore !== "") update.performanceScore = Number(payload.performanceScore);
+    if (payload.yearsOfExperience !== undefined && payload.yearsOfExperience !== "") update.yearsOfExperience = Number(payload.yearsOfExperience);
+
+    const employee = await Employee.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!employee) return res.status(404).json({ message: "Employee not found." });
+
+    return res.json(employee);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.deleteEmployee = async (req, res, next) => {
+  try {
+    const employee = await Employee.findByIdAndDelete(req.params.id);
+    if (!employee) return res.status(404).json({ message: "Employee not found." });
+
+    return res.json({ message: "Employee removed successfully." });
+  } catch (error) {
+    return next(error);
+  }
+};
