@@ -19,6 +19,7 @@ function App() {
   });
 
   const logout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("employeeAnalyticsToken");
     localStorage.removeItem("employeeAnalyticsUser");
     setUser(null);
