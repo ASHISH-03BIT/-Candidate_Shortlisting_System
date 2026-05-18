@@ -26,6 +26,9 @@ function AuthForm({ onAuth }) {
 
       if (status >= 200 && status < 300) {
         setMessage(responseMessage);
+      } else {
+        setError(responseMessage);
+        return;
       }
 
       if (mode === "signup") {
@@ -40,7 +43,8 @@ function AuthForm({ onAuth }) {
         onAuth(data.user);
       }
     } catch (requestError) {
-      const backendMessage = requestError.response?.data?.message || requestError.response?.data?.error;
+      const responseData = requestError.response?.data;
+      const backendMessage = [responseData?.message, responseData?.error].filter(Boolean).join(": ");
       setError(backendMessage || requestError.message);
     } finally {
       setLoading(false);

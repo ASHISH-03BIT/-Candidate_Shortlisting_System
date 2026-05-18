@@ -3,17 +3,19 @@ const bcrypt = require("bcryptjs");
 const { signToken } = require("../utils/token");
 
 const userResponse = (user) => ({ id: user._id, name: user.name, email: user.email });
+const normalizeEmail = (email = "") => email.trim().toLowerCase();
 
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const name = req.body.name?.trim();
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(422).json({ message: "Missing required fields" });
     }
 
     const existingUser = await User.findOne({ email });
-    console.log("Existing User:", existingUser);
 
     if (existingUser) {
       return res.status(400).json({ message: "A record with this email already exists" });
@@ -26,13 +28,24 @@ exports.signup = async (req, res) => {
     return res.status(201).json({ message: "User created successfully" });
   } catch (err) {
     console.error("Signup Error:", err);
+
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "A record with this email already exists" });
+    }
+
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
+
+    if (!email || !password) {
+      return res.status(422).json({ message: "Missing required fields" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
