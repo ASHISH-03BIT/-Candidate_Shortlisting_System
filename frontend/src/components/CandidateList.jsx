@@ -2,51 +2,65 @@ import { useEffect, useState } from "react";
 import api from "../api.js";
 
 function CandidateList() {
-  const [candidates, setCandidates] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [department, setDepartment] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        const { data } = await api.get("/api/candidates");
-        setCandidates(data);
-      } catch (requestError) {
-        setError(requestError.response?.data?.message || "Unable to load candidates.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchEmployees = async (departmentFilter = "") => {
+    setLoading(true);
+    setError("");
+    try {
+      const endpoint = departmentFilter ? `/api/employees/search?department=${encodeURIComponent(departmentFilter)}` : "/api/employees";
+      const { data } = await api.get(endpoint);
+      setEmployees(data);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Unable to load employees.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchCandidates();
+  useEffect(() => {
+    fetchEmployees();
   }, []);
 
-  if (loading) return <div className="panel muted">Loading candidates...</div>;
+  const handleSearch = (event) => {
+    event.preventDefault();
+    fetchEmployees(department.trim());
+  };
+
+  if (loading) return <div className="panel muted">Loading employees...</div>;
   if (error) return <div className="toast error">{error}</div>;
 
   return (
     <section className="panel">
       <div className="section-heading">
-        <p className="eyebrow">Talent database</p>
-        <h2>All Candidates</h2>
+        <p className="eyebrow">Employee database</p>
+        <h2>Employee List</h2>
       </div>
+      <form className="search-row" onSubmit={handleSearch}>
+        <input value={department} onChange={(event) => setDepartment(event.target.value)} placeholder="Filter by department" />
+        <button className="primary-button" type="submit">Search</button>
+        <button className="secondary-button" type="button" onClick={() => { setDepartment(""); fetchEmployees(); }}>Clear</button>
+      </form>
       <div className="card-grid">
-        {candidates.map((candidate) => (
-          <article className="candidate-card" key={candidate._id || candidate.email}>
+        {employees.map((employee) => (
+          <article className="candidate-card" key={employee._id || employee.email}>
             <div className="card-header">
               <div>
-                <h3>{candidate.name}</h3>
-                <p>{candidate.email}</p>
+                <h3>{employee.employeeName}</h3>
+                <p>{employee.email}</p>
               </div>
-              <span className="badge experience">{candidate.experience} yrs</span>
+              <span className="badge high">{employee.performanceScore}%</span>
             </div>
+            <p className="bio"><strong>{employee.department}</strong> • {employee.yearsOfExperience} years experience</p>
             <div className="tag-row">
-              {(candidate.skills || []).map((skill) => <span className="skill-tag" key={skill}>{skill}</span>)}
+              {(employee.skills || []).map((skill) => <span className="skill-tag" key={skill}>{skill}</span>)}
             </div>
-            {candidate.bio && <p className="bio">{candidate.bio}</p>}
           </article>
         ))}
-        {!candidates.length && <p className="muted">No candidates added yet.</p>}
+        {!employees.length && <p className="muted">No employees found.</p>}
       </div>
     </section>
   );

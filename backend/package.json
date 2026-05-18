@@ -1,7 +1,7 @@
 {
-  "name": "candidate-shortlisting-backend",
+  "name": "employee-performance-analytics-backend",
   "version": "1.0.0",
-  "description": "Express API for Candidate Profile Shortlisting System",
+  "description": "Express API for AI-Based Employee Performance Analytics & Recommendation System",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

@@ -1,3 +1,5 @@
+const Employee = require("../models/Employee");
+
 const stripMarkdownFences = (content) =>
   String(content || "")
     .trim()
@@ -5,63 +7,60 @@ const stripMarkdownFences = (content) =>
     .replace(/\s*```$/i, "")
     .trim();
 
-const buildPrompt = ({ requiredSkills, minExperience, candidates }) => {
-  const candidateLines = candidates
+const buildPrompt = ({ employees }) => {
+  const employeeLines = employees
     .map(
-      (candidate, index) =>
-        `${index + 1}. ${candidate.name} | Skills: ${(candidate.skills || []).join(", ")} | Experience: ${candidate.experience} years | Bio: ${candidate.bio || ""}`
+      (employee, index) =>
+        `${index + 1}. ${employee.employeeName || employee.name} | Department: ${employee.department} | Skills: ${(employee.skills || []).join(", ")} | Performance Score: ${employee.performanceScore} | Experience: ${employee.yearsOfExperience} years`
     )
     .join("\n");
 
-  return `You are a technical recruiter AI.
-Job requires: ${(requiredSkills || []).join(", ")} with ${minExperience}+ years experience.
-Candidates:
-${candidateLines}
+  return `You are an HR analytics AI.
+Employee performance data:
+${employeeLines}
 
-For each candidate:
-1. Score them 0-100 for fit
-2. Write a 1-sentence explanation
-3. Rank all candidates
-
+Suggest promotion readiness, employee ranking, training suggestions, and constructive AI feedback.
 Return ONLY valid JSON in this exact format:
 {
-  "ranked": [
+  "recommendations": [
     {
-      "name": "...",
-      "aiScore": 85,
-      "reason": "...",
-      "rank": 1
+      "employeeName": "...",
+      "rank": 1,
+      "promotionRecommendation": "Promote | Consider | Not Ready",
+      "trainingSuggestions": ["..."],
+      "feedback": "...",
+      "aiScore": 90
     }
   ]
 }`;
 };
 
-exports.shortlistWithAI = async (req, res) => {
+exports.recommendEmployees = async (req, res, next) => {
   try {
-    const { requiredSkills = [], minExperience = 0, candidates = [] } = req.body;
-
     if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === "your_openrouter_key_here") {
       return res.status(500).json({ message: "OPENROUTER_API_KEY is not configured." });
     }
 
-    if (!Array.isArray(candidates) || candidates.length === 0) {
-      return res.status(400).json({ message: "At least one candidate is required for AI shortlisting." });
-    }
+    const employees = Array.isArray(req.body.employees) && req.body.employees.length
+      ? req.body.employees
+      : await Employee.find().sort({ performanceScore: -1 }).lean();
 
-    const prompt = buildPrompt({ requiredSkills, minExperience, candidates });
+    if (!employees.length) {
+      return res.status(400).json({ message: "At least one employee is required for AI recommendations." });
+    }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "Candidate Shortlisting System"
+        "HTTP-Referer": process.env.FRONTEND_URL || "http://localhost:5173",
+        "X-Title": "Employee Performance Analytics System"
       },
       body: JSON.stringify({
         model: process.env.AI_MODEL || "openai/gpt-4o",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
+        max_tokens: 1200,
+        messages: [{ role: "user", content: buildPrompt({ employees }) }]
       })
     });
 
@@ -73,26 +72,15 @@ exports.shortlistWithAI = async (req, res) => {
     const data = await response.json();
     const rawContent = data?.choices?.[0]?.message?.content;
     const parsed = JSON.parse(stripMarkdownFences(rawContent));
-    const ranked = Array.isArray(parsed.ranked) ? parsed.ranked : [];
+    const recommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
 
-    const candidatesByName = new Map(
-      candidates.map((candidate) => [String(candidate.name || "").toLowerCase(), candidate])
-    );
-
-    const merged = ranked
-      .map((result) => ({
-        ...(candidatesByName.get(String(result.name || "").toLowerCase()) || {}),
-        ...result,
-        aiScore: Number(result.aiScore) || 0,
-        rank: Number(result.rank) || 999
-      }))
-      .sort((a, b) => b.aiScore - a.aiScore || a.rank - b.rank);
-
-    return res.json(merged);
+    return res.json(recommendations.sort((a, b) => Number(a.rank || 999) - Number(b.rank || 999)));
   } catch (error) {
-    return res.status(500).json({ message: "AI shortlisting failed.", error: error.message });
+    error.message = `AI recommendation failed. ${error.message}`;
+    return next(error);
   }
 };
 
+exports.shortlistWithAI = exports.recommendEmployees;
 exports.stripMarkdownFences = stripMarkdownFences;
 exports.buildPrompt = buildPrompt;
