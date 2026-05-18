@@ -22,18 +22,16 @@ function AuthForm({ onAuth }) {
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
       const payload = mode === "signup" ? form : { email: form.email, password: form.password };
       const { data, status } = await api.post(endpoint, payload);
+      const responseMessage = data?.message || "Request completed successfully";
 
-      if (mode === "signup") {
-        if (status === 201 && data.message) {
-          setMessage(data.message);
-          setMode("login");
-          setForm((current) => ({ ...current, password: "" }));
-        }
-        return;
+      if (status >= 200 && status < 300) {
+        setMessage(responseMessage);
       }
 
-      if (data.message) {
-        setMessage(data.message);
+      if (mode === "signup") {
+        setMode("login");
+        setForm((current) => ({ ...current, password: "" }));
+        return;
       }
 
       if (data.token && data.user) {
@@ -42,7 +40,8 @@ function AuthForm({ onAuth }) {
         onAuth(data.user);
       }
     } catch (requestError) {
-      setError(requestError.response?.data?.message || requestError.message);
+      const backendMessage = requestError.response?.data?.message || requestError.response?.data?.error;
+      setError(backendMessage || requestError.message);
     } finally {
       setLoading(false);
     }
