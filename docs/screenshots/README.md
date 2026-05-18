@@ -2,9 +2,8 @@
 
 Capture and place the required project screenshots here before final submission:
 
-- Postman auth requests
-- Postman employee requests
-- Postman AI recommendation request
+- Postman employee requests without Authorization headers
+- Postman AI recommendation request without Authorization headers
 - MongoDB employees collection
-- Frontend registration/list/filter/AI screens
+- Frontend employee registration/list/filter/AI screens
 - Render frontend/backend deployment screens

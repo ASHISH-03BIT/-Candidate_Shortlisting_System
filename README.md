@@ -8,7 +8,6 @@ A MERN-style application for registering employees, tracking performance data, f
 - **Database:** MongoDB with Mongoose
 - **Frontend:** React.js + Vite
 - **HTTP Client:** Axios
-- **Auth:** JWT-style bearer tokens with salted password hashing
 - **AI API:** OpenRouter/OpenAI-compatible Chat Completions API
 - **Default AI Model:** `openai/gpt-4o`
 - **Deployment Target:** Render web service + Render static site + MongoDB Atlas
@@ -22,31 +21,23 @@ A MERN-style application for registering employees, tracking performance data, f
   /models
     Employee.js
     Candidate.js       # compatibility alias for the existing structure
-    User.js
+    User.js           # retained for compatibility if existing data references it
   /routes
-    auth.js
     employees.js
     candidates.js      # compatibility alias for the existing structure
     match.js
     ai.js
   /controllers
-    authController.js
     candidateController.js
     matchController.js
     aiController.js
   /middleware
-    auth.js
     errorHandler.js
-  /utils
-    password.js
-    token.js
-
 /frontend
   vite.config.js
   .env.example
   /src
     /components
-      AuthForm.jsx
       CandidateForm.jsx       # now Employee Registration Form
       CandidateList.jsx       # now Employee List + department search
       JobForm.jsx             # performance ranking + AI recommendation view
@@ -89,7 +80,6 @@ PORT=5000
 OPENROUTER_API_KEY=your_openrouter_key_here
 AI_MODEL=openai/gpt-4o
 FRONTEND_URL=http://localhost:5173
-JWT_SECRET=replace_with_a_long_random_secret
 ```
 
 The backend runs at:
@@ -114,40 +104,7 @@ http://localhost:5173
 
 ## API Endpoints
 
-Protected endpoints require this header:
-
-```http
-Authorization: Bearer YOUR_TOKEN
-```
-
-### Authentication
-
-#### Signup
-
-```http
-POST /api/auth/signup
-```
-
-```json
-{
-  "name": "HR Manager",
-  "email": "hr@example.com",
-  "password": "secret123"
-}
-```
-
-#### Login
-
-```http
-POST /api/auth/login
-```
-
-```json
-{
-  "email": "hr@example.com",
-  "password": "secret123"
-}
-```
+All CRUD and recommendation endpoints are accessible directly; no bearer token or authentication header is required.
 
 ### Add Employee
 
@@ -215,7 +172,6 @@ It returns promotion recommendation, employee ranking, training suggestions, AI 
 
 ## Frontend Usage
 
-- **Login/Signup:** Create a secure HR account and store a bearer token in local storage.
 - **Add Employee:** Register employee name, email, department, skills, performance score, and years of experience.
 - **Employee List:** View all employees and filter by department.
 - **Performance Ranking:** Rank employees using skill matches, experience, and performance score.
@@ -241,7 +197,6 @@ Environment variables:
 | `OPENROUTER_API_KEY` | OpenRouter API key |
 | `AI_MODEL` | `openai/gpt-4o` |
 | `FRONTEND_URL` | Render frontend origin |
-| `JWT_SECRET` | Long random secret |
 | `NODE_VERSION` | `20` |
 
 Backend live URL placeholder:
@@ -282,16 +237,14 @@ After deployment, update backend `FRONTEND_URL` to the final frontend URL and re
 
 Add screenshots under a `docs/screenshots/` folder after running locally or deploying:
 
-1. Postman signup/login request.
-2. Postman add employee request.
-3. Postman get/search employees request.
-4. Postman AI recommendation request.
-5. MongoDB employees collection data.
-6. Frontend login/signup screen.
-7. Frontend employee registration screen.
-8. Frontend employee list and department filter.
-9. Frontend AI recommendation output.
-10. Render backend and frontend deployment dashboards.
+1. Postman add employee request.
+2. Postman get/search employees request without an Authorization header.
+3. Postman AI recommendation request without an Authorization header.
+4. MongoDB employees collection data.
+5. Frontend employee registration screen.
+6. Frontend employee list and department filter.
+7. Frontend AI recommendation output.
+8. Render backend and frontend deployment dashboards.
 
 ## Notes
 

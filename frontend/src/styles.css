@@ -6,8 +6,6 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
-.auth-shell { display: grid; min-height: 100vh; padding: 24px; place-items: center; }
-.auth-panel { max-width: 560px; width: 100%; }
 button, input, textarea { font: inherit; }
 
 .app-shell {
