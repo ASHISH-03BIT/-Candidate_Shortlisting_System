@@ -20,31 +20,30 @@ function AuthForm({ onAuth }) {
 
     try {
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
-      const payload = mode === "signup" ? form : { email: form.email, password: form.password };
+      const payload =
+        mode === "signup"
+          ? { name: form.name, email: form.email, password: form.password }
+          : { email: form.email, password: form.password };
       const { data, status } = await api.post(endpoint, payload);
       const responseMessage = data?.message || "Request completed successfully";
 
-      if (status >= 200 && status < 300) {
-        setMessage(responseMessage);
-      } else {
-        setError(responseMessage);
-        return;
-      }
+      setMessage(responseMessage);
 
-      if (mode === "signup") {
+      if (mode === "signup" && status === 201) {
         setMode("login");
         setForm((current) => ({ ...current, password: "" }));
         return;
       }
 
-      if (data.token && data.user) {
+      if (mode === "login" && status === 200 && data.token) {
+        const authenticatedUser = { email: form.email, name: form.email.split("@")[0] };
+        localStorage.setItem("token", data.token);
         localStorage.setItem("employeeAnalyticsToken", data.token);
-        localStorage.setItem("employeeAnalyticsUser", JSON.stringify(data.user));
-        onAuth(data.user);
+        localStorage.setItem("employeeAnalyticsUser", JSON.stringify(authenticatedUser));
+        onAuth(authenticatedUser);
       }
     } catch (requestError) {
-      const responseData = requestError.response?.data;
-      const backendMessage = [responseData?.message, responseData?.error].filter(Boolean).join(": ");
+      const backendMessage = requestError.response?.data?.message;
       setError(backendMessage || requestError.message);
     } finally {
       setLoading(false);
